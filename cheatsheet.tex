@@ -15,7 +15,10 @@ spark = SparkSession.builder.appName("some-app").config("some-values").getOrCrea
 \end{verbatim}
 
 \noindent
-Note that many \verb|PySpark| operations are transformations (rather than actions), which means they are not executed until an action has been called. To show results, use \verb|df.show(n)| or \verb|df.take(n)| to see the first \verb|n| results, and \verb|df.collect()| to persist all elements (may not fit into memory).
+Note that many \verb|PySpark| operations are transformations (rather than actions), 
+which means they are not executed until an action has been called. To show results, 
+use \verb|df.show(n)| or \verb|df.take(n)| to see the first \verb|n| results, 
+and \verb|df.collect()| to persist all elements (may not fit into memory).
 \newline
 
 \noindent
@@ -267,7 +270,9 @@ Replace values according to a condition &
 Add a new column &
 \verb|df["z"] = values| &
 \verb|df.withColumn("z", values*)| \newline
-* This works if \verb|values| is a function of another column in \verb|df| (e.g. \verb|2*col("x")|) or if it is a constant value (i.e. \verb|lit(value)|). Otherwise, need to apply \verb|join| as done when concatenating two tables by column \\
+* This works if \verb|values| is a function of another column in \verb|df| 
+(e.g. \verb|2*col("x")|) or if it is a constant value (i.e. \verb|lit(value)|). 
+Otherwise, need to apply \verb|join| as done when concatenating two tables by column \\
 \hline
 
 Bin values into discrete intervals &
