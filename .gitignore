@@ -1,5 +1,6 @@
-*
-!.gitignore
-!*.tex
-!*.pdf
-!README.md
+backup
+*.aux
+*.log
+*.fdb_latexmk
+*.fls
+*.synctex.gz
