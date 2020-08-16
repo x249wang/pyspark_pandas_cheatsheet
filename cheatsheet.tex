@@ -1,0 +1,321 @@
+\documentclass{article}
+\usepackage{longtable}
+\usepackage{hhline}
+\usepackage[margin=0.75in]{geometry}
+
+\begin{document}
+
+\section*{PySpark Pandas Commands Lookup}
+
+Initialize Spark session: 
+\begin{verbatim}
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+spark = SparkSession.builder.appName("some-app").config("some-values").getOrCreate()
+\end{verbatim}
+
+\noindent
+Note that many \verb|PySpark| operations are transformations (rather than actions), which means they are not executed until an action has been called. To show results, use \verb|df.show(n)| or \verb|df.take(n)| to see the first \verb|n| results, and \verb|df.collect()| to persist all elements (may not fit into memory).
+\newline
+
+\noindent
+Import pandas package: 
+\begin{verbatim}
+import pandas as pd
+\end{verbatim}
+
+\setlength{\topsep}{0pt}
+\begin{longtable}[l]{| p{.20\textwidth} | p{.35\textwidth} | p{.40\textwidth} |}
+\hline
+
+\textbf{Command} & \textbf{Pandas} & \textbf{PySpark} \\ 
+\hhline{|=|=|=|}
+\endhead
+
+\multicolumn{3}{| l |}{\textbf{Basics}}\\ 
+\hhline{|=|=|=|}
+
+Read in a csv file & 
+\verb|pd.read_csv("path.csv")| & 
+\verb|spark.read \| \newline
+\verb|  .option("header", True) \| \newline
+\verb|  .csv("path.csv")| \\ 
+\hline
+
+Write to a csv file & 
+\verb|pd.to_csv("path.csv")| & 
+\verb|df.write.csv("path.csv", header = True)| \\ 
+\hline
+
+Convert between a \verb|pandas DataFrame| and a \verb|PySpark DataFrame| &
+\verb|spark.createDataFrame(pd)| &
+\verb|df.toPandas()| \\
+\hline
+
+Get table dimensions & 
+\verb|df.shape| & 
+\verb|df.count()| for row count\newline 
+\verb|len(df.columns)| for column count \\ 
+\hline
+
+Display the first \verb|n| rows & 
+\verb|df.head(n)| & 
+\verb|df.show(5)| \\ 
+\hline
+
+Check for null values by column & 
+\verb|df.isnull().sum()| & 
+\verb=df.select([= \newline
+\verb=  count(= \newline
+\verb=    when(isnan(c) | col(c).isNull(), c)= \newline
+\verb=  ).alias(c) \= \newline
+\verb=  for c in df.columns= \newline
+\verb=])= \\
+\hline
+
+Check for type information & 
+\verb|df.dtypes| & 
+\verb|df.dtypes| \\ 
+\hline
+
+List columns & 
+\verb|df.columns| & 
+\verb|df.columns| \\ 
+\hline
+
+\multicolumn{3}{| l |}{\textbf{Statistics}} \\ 
+\hhline{|=|=|=|}
+
+Get summary statistics (mean, standard deviation, minimum, etc.) & 
+\verb|df.describe()| & 
+\verb|df.describe().show()| \\ 
+\hline
+
+Get quantiles of a numeric column & 
+\verb|df["c"].quantile(q = [0.5])| & 
+\verb|df.approxQuantile(| \newline
+\verb|  "c",| \newline
+\verb|  probabilities = [0.5],| \newline 
+\verb|  relativeError = 0*| \newline
+\verb|)| \newline 
+* \verb|relativeError| can be set to a value greater than 0 for faster, approximate results \\ 
+\hline 
+
+Compute pairwise correlations & 
+\verb|df[["x", "y"]].corr()| & 
+\verb|df.stat.corr("x", "y")| \\
+\hline
+
+Compute correlation matrix & 
+\verb|df.corr()| & 
+\verb|from pyspark.ml.stat import Correlation| \newline
+\verb|from pyspark.ml.feature import VectorAssembler| \newline
+\verb|vector_col = "features"| \newline
+\verb|assembler = VectorAssembler(| \newline
+\verb|  inputCols = df.columns, | \newline
+\verb|  outputCol = vector_col| \newline
+\verb|)| \newline
+\verb|df_vec = assembler.transform(df) \| \newline
+\verb|  .select(vector_col)| \newline
+\verb|Correlation.corr(df_vec, vector_col) \| \newline
+\verb|  .head()| \\
+\hline
+
+Get unique values in a column & 
+\verb|df["c"].unique()| & 
+\verb|df.select("c").distinct()| \\
+\hline 
+
+Count unique values in a column & 
+\verb|df["c"].nunique()| & 
+\verb|df.select("c").distinct().count()| \\
+\hline 
+
+Return count of unique values for a column & 
+\verb|df["c"].value_counts()| &
+\verb|df.groupBy("c").count()| \\
+\hline
+
+Pairwise frequencies of two categorical columns & 
+\verb|pd.crosstab(df["x"], df["y"])| & 
+\verb|df.crosstab("x", "y")| \\
+\hline
+
+Create pivot table & 
+\verb|pd.pivot_table(| \newline
+\verb|  data = df,| \newline
+\verb|  values = "z",| \newline
+\verb|  index = "x",| \newline
+\verb|  columns = "y",| \newline
+\verb|  aggfunc = "sum"| \newline
+\verb|)| & 
+\verb|df.groupBy("x") \| \newline
+\verb|  .pivot("y") \| \newline
+\verb|  .sum("z")| \\
+\hline
+
+Get histogram bins and counts & 
+\verb|df["c"].value_counts(bins = n)| & 
+\verb|bins, counts = df.select("c") \| \newline
+\verb|  .rdd \| \newline
+\verb|  .flatMap(lambda x: x) \| \newline
+\verb|  .histogram(n)| \\
+\hline
+
+\multicolumn{3}{| l |}{\textbf{Queries}} \\ 
+\hhline{|=|=|=|}
+
+Group data by values of a column & 
+\verb|df.groupby("c")| & 
+\verb|df.groupBy("c")| \\
+\hline
+
+Select a column & 
+\verb|df["c"]| & 
+\verb|df.select("c")| \\
+\hline
+
+Subset rows based on membership in a list & 
+\verb|df[df["c"].isin(values)]| & 
+\verb|df[df["c"].isin(values)]| \\
+\hline
+
+Subset rows based on a numeric threshold & 
+\verb|df[df["c"] > value]| & 
+\verb|df[df["c"] > value]| \\
+\hline
+
+Subset rows based on string patterns &
+\verb|df[df["c"].str.startswith(pattern)]| &
+\verb|df[df["c"].startswith(pattern)]| \\
+\hline
+
+Select values based on a filter condition & 
+\verb|df.loc[df["x"] == value, "y"]| &
+\verb|df.filter(df["x"] == value).select("y")| \\
+\hline
+
+\multicolumn{3}{| l |}{\textbf{Data Wrangling}} \\ 
+\hhline{|=|=|=|}
+
+Sort data by a column & 
+\verb|df.sort_values(| \newline
+\verb|  by = "x",| \newline
+\verb|  ascending = False| \newline
+\verb|)| &
+\verb|df.orderBy(df.x.desc())| \\
+\hline
+
+Cast to a different data type &
+\verb|df.c.astype("float64")| &
+\verb|df.withColumn(| \newline
+\verb|  "c",| \newline 
+\verb|  df["c"].cast("double")| \newline
+\verb|)| \\
+\hline
+
+Select a sample of observations (without replacement) &
+\verb|df.sample(| \newline
+\verb|  frac = frac,| \newline 
+\verb|  replace = False| \newline
+\verb|)| &
+\verb|df.sample(| \newline
+\verb|  withReplacement = False,| \newline
+\verb|  fraction = frac| \newline
+\verb|)| \\
+\hline
+
+Remove duplicated entries & 
+\verb|df.drop_duplicates(| \newline
+\verb|  subset = ["x", "y"]| \newline
+\verb|)| &
+\verb|df.dropDuplicates(subset = ["x", "y"])| \\
+\hline
+
+Remove rows with missing values &
+\verb|df.dropna(how = "any")| &
+\verb|df.dropna(how = "any")| \\
+\hline 
+
+Replace missing values with a constant &
+\verb|df["x"].fillna(-1)| &
+\verb|df.fillna(-1, subset = ["x"])| \\
+\hline
+
+Remove columns & 
+\verb|df.drop(columns = ["x", "y"])| &
+\verb|df.drop("x", "y")| \\
+\hline
+
+Rename a column & 
+\verb|df.rename(| \newline
+\verb|  columns = {"old_c": "new_c"}| \newline
+\verb|)| & 
+\verb|df.withColumnRenamed("old_c", "new_c")| \\
+\hline
+
+Replace values according to a condition &
+\verb|df.loc[df.x == "c", "y"] = "d"| &
+\verb|df.withColumn(| \newline
+\verb|  "y",| \newline
+\verb|  when(| \newline
+\verb|    df["x"] == "c", "d"| \newline
+\verb|  ).otherwise(df["y"])| \newline
+\verb|)| \\
+\hline
+
+Add a new column &
+\verb|df["z"] = values| &
+\verb|df.withColumn("z", values*)| \newline
+* This works if \verb|values| is a function of another column in \verb|df| (e.g. \verb|2*col("x")|) or if it is a constant value (i.e. \verb|lit(value)|). Otherwise, need to apply \verb|join| as done when concatenating two tables by column \\
+\hline
+
+Bin values into discrete intervals &
+\verb|df["x_grouped"] = pd.cut(| \newline
+\verb|  df.x, bins = intervals_list| \newline
+\verb|)| &
+\verb|from pyspark.ml.feature import Bucketizer| \newline
+\verb|bucketizer = Bucketizer( |\newline
+\verb|  splits = intervals_list,| \newline
+\verb|  inputCol = "x",| \newline
+\verb|  outputCol = "x_grouped"| \newline
+\verb|)| \newline
+\verb|df = bucketizer.transform(df)| \\
+\hline
+
+Merge two tables & 
+\verb|df1.merge(| \newline
+\verb|  df2, on = ["x"], how = "left"| \newline
+\verb|)| &
+\verb|df1.join(| \newline
+\verb|  df2, on = ["x"], how = "left"| \newline
+\verb|)| \\
+\hline
+
+Append a table to the end of another table & 
+\verb|df1.append(df2)| &
+\verb|df1.union(df2)| (need to have same schema) \\
+\hline
+
+Concatenate two tables by column & 
+\verb|pd.concat([df1, df2], axis = 1)| &
+\verb|df1 = df1.withColumn(| \newline
+\verb|  "id", monotonically_increasing_id()| \newline
+\verb|)| \newline
+\verb|df2 = df2.withColumn(| \newline
+\verb|  "id", monotonically_increasing_id()| \newline
+\verb|)| \newline
+\verb|df1.join(| \newline
+\verb|  df2, on = "id", how = "outer"| \newline
+\verb|).drop("id")| \\
+\hline
+
+Apply custom functions & 
+\verb|df.x.apply(foo).rename("x_new")| &
+\verb|from pyspark.sql.types import FloatType| \newline
+\verb|foo_udf = udf(foo, FloatType())| \newline
+\verb|df.select(foo_udf("x").alias("x_new"))| \\
+\hline
+
+\end{longtable}
+\end{document}
